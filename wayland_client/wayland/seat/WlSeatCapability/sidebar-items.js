@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["Keyboard","the seat has one or more keyboards"],["Pointer","the seat has pointer devices"],["Touch","the seat has touch devices"]],"struct":[["WlSeatCapability",""]]});

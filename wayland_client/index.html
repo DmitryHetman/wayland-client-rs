@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `wayland_client` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, wayland_client">
+
+    <title>wayland_client - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'></p><script>window.sidebarCurrent = {name: 'wayland_client', ty: 'mod', relpath: '../'};</script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>wayland_client</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-0' class='srclink' href='../src/wayland_client/wayland-client/src/lib.rs.html#1-238' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>Wayland client library bindings</p>
+
+<p>This crate offers relatively low-level bindings to the client-side
+wayland API. Allowing you to write wayland applications mostly without
+the need of unsafe code.</p>
+
+<h2 id='the-wayland-protocol' class='section-header'><a href='#the-wayland-protocol'>The Wayland protocol</a></h2>
+<p>The protocol used between clients and compositors in the wayland architecture is
+composed of objects. Each object is the instanciation of an interface, which
+defines several requests and events.</p>
+
+<p>Requests are messages from the client to the compositor, events are messages from
+the compositor to the client. Both are always associated with an object.</p>
+
+<p>These objects are represented in this crate via the <code>Proxy</code> trait, and can be
+identified via the <code>ProxyId</code> tokens, which can be compared for equality, or used
+as a key in an hashmap.</p>
+
+<p>Requests of an object can be invoked as methods on the proxy object representing
+it. Events are retrieved fia events iterator, which yields the event, associated
+to a <code>ProxyId</code>, to identify which object they are related to.</p>
+
+<p>See the documentation of the <code>wayland</code> module for details about the main interfaces
+of the core protocol.</p>
+
+<h2 id='using-this-crate' class='section-header'><a href='#using-this-crate'>Using this crate</a></h2>
+<p>The entry point of this crate is the <code>get_display</code> function. It&#39;ll try to
+open a connexion to the wayland compositor as defined by the environment
+variables. On success, it&#39;ll provide you with the proxy associated to the
+<code>wl_display</code>, as well as an event iterator, collecting its events.</p>
+
+<p>The first thing you&#39;ll do is retrieve the global objects advertized by the
+compositor. You can to that by creating a <code>wl_registry</code> from your display,
+and manually handling its events, or use the <code>wayland_env!()</code> macro which
+abstracts away most of this job for you.</p>
+
+<p>Once this done you can start to create objects, setup your UI, and then
+write you event loops.</p>
+
+<p>An example of squeletton using this structure is:</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='attribute'>#[<span class='ident'>macro_use</span>]</span> <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>wayland_client</span>;
+<span class='kw'>use</span> <span class='ident'>wayland_client</span>::<span class='ident'>wayland</span>::<span class='ident'>get_display</span>;
+
+<span class='macro'>wayland_env</span><span class='macro'>!</span>(<span class='ident'>WaylandEnv</span>,
+    <span class='comment'>/* list of the globals you want to use */</span>
+);
+ 
+
+<span class='kw'>fn</span> <span class='ident'>main</span>() {
+    <span class='kw'>let</span> (<span class='ident'>display</span>, <span class='ident'>event_iter</span>) <span class='op'>=</span> <span class='ident'>get_display</span>()
+        .<span class='ident'>expect</span>(<span class='string'>&quot;Unable to connect to the wayland compositor.&quot;</span>);
+    <span class='kw'>let</span> (<span class='ident'>env</span>, <span class='kw-2'>mut</span> <span class='ident'>event_iter</span>) <span class='op'>=</span> <span class='ident'>WaylandEnv</span>::<span class='ident'>init</span>(<span class='ident'>display</span>, <span class='ident'>event_iter</span>);
+
+    <span class='comment'>/* Setup your wayland objects */</span>
+
+    <span class='kw'>loop</span> {
+        <span class='comment'>// Event loop</span>
+        <span class='kw'>for</span> <span class='ident'>event</span> <span class='kw'>in</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>event_iter</span> {
+            <span class='comment'>/* Handle the event */</span>
+        }
+        <span class='comment'>// Sync pending messages with the compositor</span>
+        <span class='ident'>event_iter</span>.<span class='ident'>dispatch</span>().<span class='ident'>expect</span>(<span class='string'>&quot;Connexion with the wayland compositor was lost.&quot;</span>);
+    }
+}</pre>
+
+<h2 id='modularity' class='section-header'><a href='#modularity'>Modularity</a></h2>
+<p>Many of the features offered by this crate are optionnal, and controlled by cargo features.</p>
+
+<h3 id='linking-behavior' class='section-header'><a href='#linking-behavior'>Linking behavior</a></h3>
+<p>By default, the crate is dynamically linked with the several C library it requires
+(at least <code>libwayland-client.so</code> and maybe others, depending on your enabled features).
+This can be changed with the feature <code>dlopen</code>. When activated, it&#39;ll cause the library
+to instead try to load the libraries at runtime, and return an error if it failed,
+allowing you to gracefully handle the lack of wayland support on the system, for example
+by falling-back to X11.</p>
+
+<h3 id='secondary-libraries' class='section-header'><a href='#secondary-libraries'>Secondary libraries</a></h3>
+<p>This crate allows you to use two secondary C library provided by the official
+wayland distribution:</p>
+
+<ul>
+<li><code>libwayland-egl.so</code>: this library is necessary is you plan to use OpenGL, it
+provides the glue necessary to intialize an OpenGL context. it i enabled by
+the <code>egl</code> cargo feature, and adds an <code>egl</code> submodule to the crate.</li>
+<li><code>libwayland-cursor.so</code>: this library allows you to retrieve the cursor themes
+of the system your application is running on, in order to use them and integrate
+in the look and feel of the compositor ruuning your program.</li>
+</ul>
+
+<h3 id='protocol-extensions' class='section-header'><a href='#protocol-extensions'>Protocol extensions</a></h3>
+<p>Other cargo features include the support of various protocol extensions of wayland.
+Such extentions add new objects to the supported ones, and are all optionnal.</p>
+
+<p>Each of them is controlled by a cargo feature, following this naming convention:</p>
+
+<ul>
+<li><code>wp_&lt;feature name&gt;</code> for protocol extensions whose specification are stable and
+can be relied upon</li>
+<li><code>wpu_&lt;feature name&gt;</code> for protocol extensions whose specification are still under
+developpement and subject to drastic changes. No stability guarantee is provided
+by this crate for part of the API behiond these features.</li>
+</ul>
+
+<p>Each of these feature creates a submodule in the <code>extensions</code> module containing
+the API of this extension. The documentation hosted online is generated with all
+supported features activated.</p>
+
+<p>To use <code>wpu_*</code> protocol extensions, you&#39;ll also need to activate the <code>unstable-protocols</code>
+cargo feature, which serves as a global gate for them. Some of them may also
+require using a nightly rust compiler.</p>
+
+<h3 id='protocol-errors' class='section-header'><a href='#protocol-errors'>Protocol errors</a></h3>
+<p>This library is a safe wrapper around the C library in the rust sense. It&#39;ll gaurd
+you from memory safety or data-races errors, but not from logic errors.</p>
+
+<p>Logic errors in wayland are called <em>Protocol Errors</em>. The documentation states
+when doing something is a protocol error. Most basic example would be assigning
+two different roles to a surface at the same time (see <code>wayland</code> module
+documentation for details about what surfaces and roles are).</p>
+
+<p>When a protocol error is raised, the compositor will simply report it an close
+the connexion to your client. When this happen, message-syncing methods of
+<code>EventIterator</code> will start returning <code>Err(_)</code>.</p>
+
+<p>There is no way to recover from a protocol error, apart creating a brand new
+wayland connexion and starting all over. Thus the <code>Iterator</code> implementation
+of <code>EventIterator</code> will panic if a protocol error is raised. If you need to
+gracefully handle protocol errors, use the manual envent querying methods instead.</p>
+
+<p>There is currently no way to query what the error was, but it is planned. See
+<a href="https://github.com/vberger/wayland-client-rs/issues/33">the associated github issue</a>.</p>
+</div><h2 id='reexports' class='section-header'><a href="#reexports">Reexports</a></h2>
+<table><tr><td><code>pub use wayland::{<a class='fn' href='../wayland_client/wayland/fn.get_display.html' title='wayland_client::wayland::get_display'>get_display</a>, <a class='enum' href='../wayland_client/wayland/enum.ConnectError.html' title='wayland_client::wayland::ConnectError'>ConnectError</a>};</code></td></tr></table><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='cursor/index.html'
+                                  title='wayland_client::cursor'>cursor</a></td>
+                           <td class='docblock short'>
+                                <p>Cursor utilities</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='egl/index.html'
+                                  title='wayland_client::egl'>egl</a></td>
+                           <td class='docblock short'>
+                                <p>EGL utilities</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='extensions/index.html'
+                                  title='wayland_client::extensions'>extensions</a></td>
+                           <td class='docblock short'>
+                                <p>Protocol extensions</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='wayland/index.html'
+                                  title='wayland_client::wayland'>wayland</a></td>
+                           <td class='docblock short'>
+                                <p>The core wayland protocol</p>
+                           </td>
+                       </tr></table><h2 id='macros' class='section-header'><a href="#macros">Macros</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='macro' href='macro.wayland_env!.html'
+                                  title='wayland_client::wayland_env!'>wayland_env!</a></td>
+                           <td class='docblock short'>
+                                <p>This macro allows you to create a simple wayland environment handler.</p>
+                           </td>
+                       </tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.EventIterator.html'
+                                  title='wayland_client::EventIterator'>EventIterator</a></td>
+                           <td class='docblock short'>
+                                <p>An event iterator</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.ProxyId.html'
+                                  title='wayland_client::ProxyId'>ProxyId</a></td>
+                           <td class='docblock short'>
+                                <p>An opaque identifier for Proxys</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.ReadEventsGuard.html'
+                                  title='wayland_client::ReadEventsGuard'>ReadEventsGuard</a></td>
+                           <td class='docblock short'>
+                                <p>A guard over a read intention.</p>
+                           </td>
+                       </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='enum' href='enum.Event.html'
+                                  title='wayland_client::Event'>Event</a></td>
+                           <td class='docblock short'>
+                                <p>All possible wayland events.</p>
+                           </td>
+                       </tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='trait' href='trait.Proxy.html'
+                                  title='wayland_client::Proxy'>Proxy</a></td>
+                           <td class='docblock short'>
+                                <p>Common routines for manipulating wayland objects</p>
+                           </td>
+                       </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.is_available.html'
+                                  title='wayland_client::is_available'>is_available</a></td>
+                           <td class='docblock short'>
+                                <p>Checks if the wayland lib is available</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "wayland_client";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script defer src="../search-index.js"></script>
+</body>
+</html>
